@@ -5,10 +5,18 @@
 #ifndef PPM_HEADER
 #define PPM_HEADER
 
+#include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 
-typedef struct ppm_image {
+typedef struct rgb_triplet {
+  uint16_t r, g, b;
+} RgbTriplet;
 
+typedef struct ppm_image {
+  size_t width, height;
+  uint16_t max_value;
+  RgbTriplet *color_values;
 } PpmImage;
 
 PpmImage *read_ppm_image(FILE *source_file);
