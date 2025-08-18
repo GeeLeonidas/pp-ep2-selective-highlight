@@ -2,7 +2,9 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-int process_ppm_image(int argc, char **argv) {
+#include "filter.h"
+
+int filter_ppm_image(PpmImage *image) {
   // TODO
   return 0;
 }
