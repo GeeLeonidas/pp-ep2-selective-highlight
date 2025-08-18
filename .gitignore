@@ -1,0 +1,8 @@
+# SPDX-FileCopyrightText: 2025 Guilherme Leoi <leoi.guilherme@aluno.ufabc.edu.br>
+#
+# SPDX-License-Identifier: 0BSD OR CC0-1.0
+
+/target
+/.direnv
+/.pre-commit-config.yaml
+/nohup.out

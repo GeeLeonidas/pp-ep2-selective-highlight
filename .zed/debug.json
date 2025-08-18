@@ -1,0 +1,16 @@
+// SPDX-FileCopyrightText: 2025 Guilherme Leoi <leoi.guilherme@aluno.ufabc.edu.br>
+//
+// SPDX-License-Identifier: 0BSD OR CC0-1.0
+[
+  {
+    "label": "Debug native binary",
+    "build": {
+      "command": "$ZED_WORKTREE_ROOT/tools/build_debug.sh",
+      "args": [],
+      "cwd": "$ZED_WORKTREE_ROOT"
+    },
+    "program": "$ZED_WORKTREE_ROOT/target/debug/main",
+    "request": "launch",
+    "adapter": "CodeLLDB"
+  }
+]
