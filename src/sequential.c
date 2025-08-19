@@ -24,6 +24,20 @@ int grayscale(PpmImage *image) {
   return 1;
 }
 
+size_t r_pixel(PpmImage *image, size_t m, size_t x, size_t y) {
+  if (image == NULL || image->color_values == NULL)
+    return 0;
+  if (x > image->width || y > image->height)
+    return 0;
+  float r, g, b;
+  size_t idx = x + y * image->width;
+  r = image->color_values[idx].r;
+  g = image->color_values[idx].g;
+  b = image->color_values[idx].b;
+  float sum = r + g + b;
+  return (((size_t)(sum * 255)) % m) + 1;
+}
+
 int filter_ppm_image(PpmImage *image) {
   if (image == NULL || image->color_values == NULL)
     return 0;
