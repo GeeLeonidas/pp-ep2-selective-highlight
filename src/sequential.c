@@ -8,38 +8,36 @@
 #include <stddef.h>
 
 int grayscale(PpmImage *image) {
-  if (image == NULL || image->color_values == NULL)
+  if (image == NULL)
     return 0;
   size_t image_size = image->width * image->height;
   for (size_t idx = 0; idx < image_size; idx++) {
-    float r, g, b;
-    r = image->color_values[idx].r;
-    g = image->color_values[idx].g;
-    b = image->color_values[idx].b;
-    float y = roundf(0.299 * r + 0.587 * g + 0.114 * b);
-    image->color_values[idx].r = y;
-    image->color_values[idx].g = y;
-    image->color_values[idx].b = y;
+    RgbTriplet rgb;
+    if (!read_at_idx_ppm_image(image, idx, &rgb))
+      return 0;
+    float y = roundf(0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b);
+    RgbTriplet grayscale_rgb = (RgbTriplet){.r = y, .g = y, .b = y};
+    if (!write_at_idx_ppm_image(image, idx, grayscale_rgb))
+      return 0;
   }
   return 1;
 }
 
 size_t r_pixel(PpmImage *image, size_t m, size_t x, size_t y) {
-  if (image == NULL || image->color_values == NULL)
+  if (image == NULL)
     return 0;
   if (x > image->width || y > image->height)
     return 0;
-  float r, g, b;
+  RgbTriplet rgb;
   size_t idx = x + y * image->width;
-  r = image->color_values[idx].r;
-  g = image->color_values[idx].g;
-  b = image->color_values[idx].b;
-  float sum = r + g + b;
+  if (!read_at_idx_ppm_image(image, idx, &rgb))
+    return 0;
+  float sum = rgb.r + rgb.g + rgb.b;
   return (((size_t)(sum * 255)) % m) + 1;
 }
 
 int blur_at(PpmImage *image, size_t m, size_t x, size_t y) {
-  if (image == NULL || image->color_values == NULL)
+  if (image == NULL)
     return 0;
   if (x > image->width || y > image->height)
     return 0;
@@ -53,20 +51,23 @@ int blur_at(PpmImage *image, size_t m, size_t x, size_t y) {
       if ((x + i) > image->width || (y + j) > image->height)
         continue;
       size_t neighbour_idx = (x + i) + (y + j) * image->width;
-      sum_r += image->color_values[neighbour_idx].r;
-      sum_g += image->color_values[neighbour_idx].g;
-      sum_b += image->color_values[neighbour_idx].b;
+      RgbTriplet neighbour_rgb;
+      if (!read_at_idx_ppm_image(image, neighbour_idx, &neighbour_rgb))
+        return 0;
+      sum_r += neighbour_rgb.r;
+      sum_g += neighbour_rgb.g;
+      sum_b += neighbour_rgb.b;
     }
   }
   float n = (float)(1 + radius * 2);
-  image->color_values[idx].r = sum_r / n;
-  image->color_values[idx].g = sum_g / n;
-  image->color_values[idx].b = sum_b / n;
+  RgbTriplet rgb = (RgbTriplet){.r = sum_r / n, .g = sum_g / n, .b = sum_b / n};
+  if (!write_at_idx_ppm_image(image, idx, rgb))
+    return 0;
   return 1;
 }
 
 int filter_ppm_image(PpmImage *image) {
-  if (image == NULL || image->color_values == NULL)
+  if (image == NULL)
     return 0;
   if (!grayscale(image))
     return 0;
