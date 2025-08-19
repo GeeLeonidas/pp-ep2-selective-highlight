@@ -23,9 +23,9 @@ PpmImage *read_ppm_image(FILE *source_file) {
     uint16_t red, green, blue;
     if (!fscanf(source_file, "%hu %hu %hu", &red, &green, &blue))
       goto read_ppm_image_error;
-    image->color_values[idx].r = red;
-    image->color_values[idx].g = green;
-    image->color_values[idx].b = blue;
+    image->color_values[idx].r = ((float)red) / ((float)image->max_value);
+    image->color_values[idx].g = ((float)green) / ((float)image->max_value);
+    image->color_values[idx].b = ((float)blue) / ((float)image->max_value);
   }
   return image;
 read_ppm_image_error:
@@ -43,9 +43,9 @@ int save_ppm_image(PpmImage *image, FILE *output_file) {
   size_t image_size = image->width * image->height;
   for (int idx = 0; idx < image_size; idx++) {
     uint16_t red, green, blue;
-    red = image->color_values[idx].r;
-    green = image->color_values[idx].g;
-    blue = image->color_values[idx].b;
+    red = (uint16_t)(image->color_values[idx].r * (float)image->max_value);
+    green = (uint16_t)(image->color_values[idx].g * (float)image->max_value);
+    blue = (uint16_t)(image->color_values[idx].b * (float)image->max_value);
     if (!fprintf(output_file, "%hu %hu %hu\n", red, green, blue))
       return 0;
   }

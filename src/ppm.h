@@ -10,7 +10,7 @@
 #include <stdio.h>
 
 typedef struct rgb_triplet {
-  uint16_t r, g, b;
+  float r, g, b;
 } RgbTriplet;
 
 typedef struct ppm_image {
