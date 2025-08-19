@@ -32,6 +32,8 @@
           pkgs = import nixpkgs { inherit system; };
         in
         {
+          sequential-build = pkgs.callPackage ./nix/sequential.nix { };
+
           pre-commit-check = inputs.pre-commit-hooks.lib.${system}.run {
             src = ./.;
             hooks = {
@@ -80,7 +82,15 @@
           };
         }
       );
-
+      packages = forAllSystems (
+        system:
+        let
+          pkgs = import nixpkgs { inherit system; };
+        in
+        {
+          default = pkgs.callPackage ./nix/sequential.nix { };
+        }
+      );
       devShells = forAllSystems (
         system:
         let

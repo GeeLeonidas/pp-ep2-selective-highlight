@@ -6,3 +6,4 @@
 /.direnv
 /.pre-commit-config.yaml
 /nohup.out
+/result
