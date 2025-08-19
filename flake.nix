@@ -108,6 +108,8 @@
                 linuxPackages_latest.perf
               ])
               ++ self.checks.${system}.pre-commit-check.enabledPackages;
+            CC = "${pkgs.clang}/bin/clang";
+            CCX = "${pkgs.clang}/bin/clang++";
           };
         }
       );
