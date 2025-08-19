@@ -52,7 +52,6 @@
                 package = pkgs.clang-tools;
                 entry = "${package}/bin/clang-format -style=file -i";
               };
-              clang-tidy.enable = true;
 
               # Nix
               nixfmt-rfc-style.enable = true;
