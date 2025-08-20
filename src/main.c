@@ -14,8 +14,8 @@
   }
 
 int main(int argc, char **argv) {
-  ASSERT(argc >= 6, "Missing arguments (min.: 5)", exit);
   int exit_code = EXIT_FAILURE;
+  ASSERT(argc >= 6, "Missing arguments (min.: 5)", exit);
   FILE *source_file = fopen(argv[1], "r");
   ASSERT(source_file != NULL, "Error opening the source file", exit);
   PpmImage *image = read_ppm_image(source_file);

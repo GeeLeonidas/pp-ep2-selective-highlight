@@ -119,7 +119,7 @@ int save_ppm_image(PpmImage *image, FILE *output_file) {
   ASSERT(fprintf(output_file, "%hu\n", image->max_value),
          "Error writing `max_value` integer", save_ppm_image_error);
   size_t image_size = image->width * image->height;
-  for (int idx = 0; idx < image_size; idx++) {
+  for (size_t idx = 0; idx < image_size; idx++) {
     RgbTriplet rgb;
     ASSERT(read_at_idx_ppm_image(image, idx, &rgb),
            "Error reading at index from PPM image", save_ppm_image_error);
