@@ -25,8 +25,11 @@ PpmImage *read_ppm_image(FILE *source_file) {
     uint16_t red, green, blue;
     if (!fscanf(source_file, "%hu %hu %hu", &red, &green, &blue))
       goto read_ppm_image_error;
-    write_at_idx_ppm_image(image, idx,
-                           (RgbTriplet){.r = red, .g = green, .b = blue});
+    RgbTriplet rgb =
+        (RgbTriplet){.r = ((float)red) / ((float)image->max_value),
+                     .g = ((float)green) / ((float)image->max_value),
+                     .b = ((float)blue) / ((float)image->max_value)};
+    write_at_idx_ppm_image(image, idx, rgb);
   }
   flush_ppm_image(image);
   return image;
