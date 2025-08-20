@@ -95,12 +95,13 @@ int sharpen(PpmImage *image, float threshold, float sharpen_factor, size_t m) {
   return 1;
 }
 
-int filter_ppm_image(PpmImage *image) {
+int filter_ppm_image(PpmImage *image, float threshold, float sharpen_factor,
+                     size_t m) {
   if (image == NULL)
     return 0;
   if (!grayscale(image))
     return 0;
-  if (!sharpen(image, 0.5, 1.0, 5))
+  if (!sharpen(image, threshold, sharpen_factor, m))
     return 0;
   return 1;
 }

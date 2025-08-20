@@ -7,6 +7,7 @@
 
 #include "ppm.h"
 
-int filter_ppm_image(PpmImage *image);
+int filter_ppm_image(PpmImage *image, float threshold, float sharpen_factor,
+                     size_t m);
 
 #endif // FILTER_HEADER
