@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: 0BSD OR CC0-1.0
 
 { pkgs, ... }:
-pkgs.clangStdenv.mkDerivation {
+pkgs.stdenv.mkDerivation {
   name = "pp-ep2";
 
   src = ../.;

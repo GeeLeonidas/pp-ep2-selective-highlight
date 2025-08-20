@@ -101,15 +101,11 @@
             inherit (self.checks.${system}.pre-commit-check) shellHook;
             buildInputs =
               (with pkgs; [
-                clang
-
                 lldb
                 valgrind-light
                 linuxPackages_latest.perf
               ])
               ++ self.checks.${system}.pre-commit-check.enabledPackages;
-            CC = "${pkgs.clang}/bin/clang";
-            CCX = "${pkgs.clang}/bin/clang++";
           };
         }
       );
