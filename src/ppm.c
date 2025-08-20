@@ -51,24 +51,32 @@ read_ppm_image_error:
 }
 
 int write_at_idx_ppm_image(PpmImage *image, size_t idx, RgbTriplet rgb) {
-  if (image == NULL || image->color_values_write == NULL ||
-      idx > image->width * image->height)
-    return 0;
+  ASSERT(image != NULL, "PPM image is NULL", write_at_idx_ppm_image_error);
+  ASSERT(image->color_values_write != NULL, "PPM image write buffer is NULL",
+         write_at_idx_ppm_image_error);
+  ASSERT(idx < (image->width * image->height),
+         "Error writing at out of bounds index from PPM image",
+         write_at_idx_ppm_image_error);
   image->color_values_write[idx] = rgb;
   image->needs_flushing = 1;
   return 1;
+write_at_idx_ppm_image_error:
+  return 0;
 }
 
 int write_at_xy_ppm_image(PpmImage *image, size_t x, size_t y, RgbTriplet rgb) {
-  if (image == NULL || x > image->width || y > image->height)
-    return 0;
+  ASSERT(image != NULL, "PPM image is NULL", write_at_xy_ppm_image_error);
   return write_at_idx_ppm_image(image, x + y * image->width, rgb);
+write_at_xy_ppm_image_error:
+  return 0;
 }
 
 int flush_ppm_image(PpmImage *image) {
-  if (image == NULL || image->color_values_write == NULL ||
-      image->color_values_read == NULL)
-    return 0;
+  ASSERT(image != NULL, "PPM image is NULL", flush_ppm_image_error);
+  ASSERT(image->color_values_read != NULL, "PPM image read buffer is NULL",
+         flush_ppm_image_error);
+  ASSERT(image->color_values_write != NULL, "PPM image write buffer is NULL",
+         flush_ppm_image_error);
   if (image->needs_flushing) {
     size_t image_size = image->width * image->height;
     for (size_t idx = 0; idx < image_size; idx++)
@@ -76,19 +84,29 @@ int flush_ppm_image(PpmImage *image) {
     image->needs_flushing = 0;
   }
   return 1;
+flush_ppm_image_error:
+  return 0;
 }
 
 int read_at_idx_ppm_image(PpmImage *image, size_t idx, RgbTriplet *rgb) {
-  if (image == NULL || image->color_values_read == NULL || rgb == NULL)
-    return 0;
+  ASSERT(image != NULL, "PPM image is NULL", read_at_idx_ppm_image_error);
+  ASSERT(image->color_values_read != NULL, "PPM image read buffer is NULL",
+         read_at_idx_ppm_image_error);
+  ASSERT(rgb != NULL, "RgbTriplet is NULL", read_at_idx_ppm_image_error);
+  ASSERT(idx < (image->width * image->height),
+         "Error reading at out of bounds index from PPM image",
+         read_at_idx_ppm_image_error);
   *rgb = image->color_values_read[idx];
   return 1;
+read_at_idx_ppm_image_error:
+  return 0;
 }
 
 int read_at_xy_ppm_image(PpmImage *image, size_t x, size_t y, RgbTriplet *rgb) {
-  if (image == NULL || x > image->width || y > image->height)
-    return 0;
+  ASSERT(image != NULL, "PPM image is NULL", read_at_xy_ppm_image_error);
   return read_at_idx_ppm_image(image, x + y * image->width, rgb);
+read_at_xy_ppm_image_error:
+  return 0;
 }
 
 int save_ppm_image(PpmImage *image, FILE *output_file) {
