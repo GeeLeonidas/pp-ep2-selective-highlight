@@ -4,7 +4,6 @@
 
 #include "filter.h"
 #include "ppm.h"
-#include <math.h>
 #include <stddef.h>
 
 int grayscale(PpmImage *image) {
@@ -15,7 +14,7 @@ int grayscale(PpmImage *image) {
     RgbTriplet rgb;
     if (!read_at_idx_ppm_image(image, idx, &rgb))
       return 0;
-    float y = roundf(0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b);
+    float y = 0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b;
     RgbTriplet grayscale_rgb = (RgbTriplet){.r = y, .g = y, .b = y};
     if (!write_at_idx_ppm_image(image, idx, grayscale_rgb))
       return 0;
@@ -81,8 +80,7 @@ int sharpen(PpmImage *image, float threshold, float sharpen_factor, size_t m) {
       if (!blur_at(image, m, x, y, &blur))
         return 0;
       if (rgb.r <= threshold)
-        new_rgb = (RgbTriplet){
-            .r = roundf(blur.r), .g = roundf(blur.g), .b = roundf(blur.b)};
+        new_rgb = blur;
       else
         new_rgb = (RgbTriplet){
             .r = clamp_zero_one(rgb.r + sharpen_factor * (rgb.r - blur.r)),

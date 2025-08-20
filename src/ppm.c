@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 #include "ppm.h"
+#include <math.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -91,9 +92,9 @@ int save_ppm_image(PpmImage *image, FILE *output_file) {
     RgbTriplet rgb;
     read_at_idx_ppm_image(image, idx, &rgb);
     uint16_t red, green, blue;
-    red = (uint16_t)(rgb.r * (float)image->max_value);
-    green = (uint16_t)(rgb.g * (float)image->max_value);
-    blue = (uint16_t)(rgb.b * (float)image->max_value);
+    red = (uint16_t)roundf(rgb.r * ((float)image->max_value));
+    green = (uint16_t)roundf(rgb.g * ((float)image->max_value));
+    blue = (uint16_t)roundf(rgb.b * ((float)image->max_value));
     if (!fprintf(output_file, "%hu %hu %hu\n", red, green, blue))
       return 0;
   }
