@@ -105,11 +105,11 @@ void free_ppm_image(PpmImage **image) {
   if (image == NULL || *image == NULL)
     return;
   if ((*image)->color_values_write) {
-    free(&((*image)->color_values_write));
+    free((*image)->color_values_write);
     (*image)->color_values_write = NULL;
   }
   if ((*image)->color_values_read) {
-    free(&((*image)->color_values_read));
+    free((*image)->color_values_read);
     (*image)->color_values_read = NULL;
   }
   free(*image);
