@@ -9,11 +9,11 @@ pkgs.clangStdenv.mkDerivation {
   src = ../.;
 
   buildPhase = ''
-    $CC src/main.c src/ppm.c src/sequential.c -lm -o main
+    $CC src/main.c src/ppm.c src/sequential.c -lm -o pp-ep2
   '';
 
   installPhase = ''
     mkdir -p $out/bin
-    cp main $out/bin/main
+    cp pp-ep2 $out/bin/pp-ep2
   '';
 }
