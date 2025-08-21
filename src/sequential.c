@@ -14,7 +14,7 @@ int grayscale(PpmImage *image) {
     RgbTriplet rgb;
     if (!read_at_idx_ppm_image(image, idx, &rgb))
       return 0;
-    float y = 0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b;
+    float y = 0.299f * rgb.r + 0.587f * rgb.g + 0.114f * rgb.b;
     RgbTriplet grayscale_rgb = (RgbTriplet){.r = y, .g = y, .b = y};
     if (!write_at_idx_ppm_image(image, idx, grayscale_rgb))
       return 0;
@@ -41,16 +41,25 @@ int blur_at(PpmImage *image, size_t m, size_t x, size_t y, RgbTriplet *rgb) {
     return 0;
   if (x > image->width || y > image->height)
     return 0;
-  size_t idx = x + y * image->width;
   size_t radius = r_pixel(image, m, x, y);
   float sum_r = 0.0, sum_g = 0.0, sum_b = 0.0;
-  for (long i = -radius; i <= radius; i++) {
-    for (long j = -radius; j <= radius; j++) {
-      if (-i > x || -j > y)
-        continue;
-      if ((x + i) > image->width || (y + j) > image->height)
-        continue;
-      size_t neighbour_idx = (x + i) + (y + j) * image->width;
+  for (size_t i = 0; i <= 2 * radius; i++) {
+    for (size_t j = 0; j <= 2 * radius; j++) {
+      size_t neighbour_x = x + i;
+      if (neighbour_x < radius)
+        neighbour_x = 0;
+      else
+        neighbour_x -= radius;
+      size_t neighbour_y = y + j;
+      if (neighbour_y < radius)
+        neighbour_y = 0;
+      else
+        neighbour_y -= radius;
+      if (neighbour_x >= image->width)
+        neighbour_x = image->width - 1;
+      if (neighbour_y >= image->height)
+        neighbour_y = image->height - 1;
+      size_t neighbour_idx = neighbour_x + neighbour_y * image->width;
       RgbTriplet neighbour_rgb;
       if (!read_at_idx_ppm_image(image, neighbour_idx, &neighbour_rgb))
         return 0;
@@ -65,13 +74,12 @@ int blur_at(PpmImage *image, size_t m, size_t x, size_t y, RgbTriplet *rgb) {
 }
 
 float clamp_zero_one(float input) {
-  return (input >= 1.0) ? 1.0 : ((input <= 0.0) ? 0.0 : input);
+  return (input >= 1.0f) ? 1.0f : ((input <= 0.0f) ? 0.0f : input);
 }
 
 int sharpen(PpmImage *image, float threshold, float sharpen_factor, size_t m) {
   if (image == NULL)
     return 0;
-  size_t image_size = image->width * image->height;
   for (size_t x = 0; x < image->width; x++) {
     for (size_t y = 0; y < image->height; y++) {
       RgbTriplet rgb, blur, new_rgb;
