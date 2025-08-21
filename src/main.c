@@ -23,6 +23,9 @@ int main(int argc, char **argv) {
          "Error reading variable radius' `m` integer", exit);
   ASSERT(sscanf(argv[4], "%lu", &raw_threshold),
          "Error reading sharpen's `threshold` integer", exit);
+  threshold = ((float)raw_threshold) / 255.0f;
+  ASSERT(threshold >= 0.0f && threshold <= 1.0f,
+         "Sharpen's `threshold` integer isn't inside 0..255 interval", exit);
   ASSERT(sscanf(argv[5], "%f", &sharpen_factor),
          "Error reading sharpen's `sharpen_factor` float", exit);
   // Tries to open/close the output file in append-mode just to test if it's possible
@@ -37,7 +40,6 @@ int main(int argc, char **argv) {
   ASSERT(fclose(source_file) == 0, "Error closing the source file", exit);
   source_file = NULL;
   ASSERT(image != NULL, "Error reading the PPM image", exit);
-  threshold = ((float)raw_threshold) / ((float)image->max_value);
   // Apply the PPM image filter
   ASSERT(filter_ppm_image(image, threshold, sharpen_factor, m),
          "Error applying the filter to the PPM image", exit);
