@@ -25,8 +25,8 @@ int main(int argc, char **argv) {
          "Error reading sharpen's `threshold` integer", exit);
   ASSERT(sscanf(argv[5], "%f", &sharpen_factor),
          "Error reading sharpen's `sharpen_factor` float", exit);
-  // Tries to open/close the output file in write-mode just to test if it's possible
-  FILE *output_file = fopen(argv[2], "w");
+  // Tries to open/close the output file in append-mode just to test if it's possible
+  FILE *output_file = fopen(argv[2], "a");
   ASSERT(output_file != NULL, "Error opening the output file", exit);
   ASSERT(fclose(output_file) == 0, "Error closing the output file", exit);
   output_file = NULL;
