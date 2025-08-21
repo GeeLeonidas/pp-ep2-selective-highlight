@@ -28,6 +28,8 @@ int main(int argc, char **argv) {
          "Sharpen's `threshold` integer isn't inside 0..255 interval", exit);
   ASSERT(sscanf(argv[5], "%f", &sharpen_factor),
          "Error reading sharpen's `sharpen_factor` float", exit);
+  ASSERT(sharpen_factor >= 0.0 && sharpen_factor <= 2.0,
+         "Sharpen's `sharpen_factor` float isn't inside 0..2 interval", exit);
   // Tries to open/close the output file in append-mode just to test if it's possible
   FILE *output_file = fopen(argv[2], "a");
   ASSERT(output_file != NULL, "Error opening the output file", exit);
