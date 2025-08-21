@@ -38,10 +38,6 @@
             src = ./.;
             hooks = {
               # Markdown
-              lychee = {
-                enable = true;
-                settings.flags = "--exclude-path LICENSES/";
-              };
               markdownlint.enable = true;
 
               # C
