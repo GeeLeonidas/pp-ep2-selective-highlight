@@ -16,6 +16,11 @@
 int main(int argc, char **argv) {
   int exit_code = EXIT_FAILURE;
   ASSERT(argc >= 6, "Missing arguments (min.: 5)", exit);
+  // Tries to open/close the output file in write-mode just to test if it's possible
+  FILE *output_file = fopen(argv[2], "w");
+  ASSERT(output_file != NULL, "Error opening the output file", exit);
+  ASSERT(fclose(output_file) == 0, "Error closing the output file", exit);
+  output_file = NULL;
   FILE *source_file = fopen(argv[1], "r");
   ASSERT(source_file != NULL, "Error opening the source file", exit);
   PpmImage *image = read_ppm_image(source_file);
@@ -33,7 +38,7 @@ int main(int argc, char **argv) {
   threshold = ((float)raw_threshold) / ((float)image->max_value);
   ASSERT(filter_ppm_image(image, threshold, sharpen_factor, m),
          "Error applying the filter to the PPM image", exit);
-  FILE *output_file = fopen(argv[2], "w");
+  output_file = fopen(argv[2], "w");
   ASSERT(output_file != NULL, "Error opening the output file", exit);
   ASSERT(save_ppm_image(image, output_file), "Error saving the PPM image",
          exit);
