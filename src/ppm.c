@@ -14,6 +14,7 @@
     puts(msg);                                                                 \
     goto exit_label;                                                           \
   }
+#define MAX_LINE 4096
 
 PpmImage *read_ppm_image(FILE *source_file) {
   ASSERT(source_file != NULL, "Source file is NULL", read_ppm_image_error);
@@ -23,7 +24,12 @@ PpmImage *read_ppm_image(FILE *source_file) {
          "Error reading the file header", read_ppm_image_error);
   ASSERT(header[0] == 'P' && header[1] == '3',
          "Unsupported format (expected `P3`)", read_ppm_image_error)
-  ASSERT(fscanf(source_file, "%lu %lu", &image->width, &image->height),
+  char line[MAX_LINE];
+  do {
+    ASSERT(fgets(line, MAX_LINE, source_file),
+           "Error reading line(s) after header", read_ppm_image_error);
+  } while (line[0] == '#' || line[0] == '\n');
+  ASSERT(sscanf(line, "%lu %lu", &image->width, &image->height),
          "Error reading `width` and `height` integers", read_ppm_image_error);
   ASSERT(fscanf(source_file, "%hu", &image->max_value),
          "Error reading `max_value` integer", read_ppm_image_error);
