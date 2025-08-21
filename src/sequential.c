@@ -59,7 +59,7 @@ int blur_at(PpmImage *image, size_t m, size_t x, size_t y, RgbTriplet *rgb) {
       sum_b += neighbour_rgb.b;
     }
   }
-  float n = (float)(1 + radius * 2);
+  float n = (float)((1 + radius * 2) * (1 + radius * 2));
   *rgb = (RgbTriplet){.r = sum_r / n, .g = sum_g / n, .b = sum_b / n};
   return 1;
 }
