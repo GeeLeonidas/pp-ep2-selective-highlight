@@ -16,6 +16,15 @@
 int main(int argc, char **argv) {
   int exit_code = EXIT_FAILURE;
   ASSERT(argc >= 6, "Missing arguments (min.: 5)", exit);
+  // Reads the runtime parameters
+  size_t m, raw_threshold;
+  float sharpen_factor, threshold;
+  ASSERT(sscanf(argv[3], "%lu", &m),
+         "Error reading variable radius' `m` integer", exit);
+  ASSERT(sscanf(argv[4], "%lu", &raw_threshold),
+         "Error reading sharpen's `threshold` integer", exit);
+  ASSERT(sscanf(argv[5], "%f", &sharpen_factor),
+         "Error reading sharpen's `sharpen_factor` float", exit);
   // Tries to open/close the output file in write-mode just to test if it's possible
   FILE *output_file = fopen(argv[2], "w");
   ASSERT(output_file != NULL, "Error opening the output file", exit);
@@ -28,15 +37,6 @@ int main(int argc, char **argv) {
   ASSERT(fclose(source_file) == 0, "Error closing the source file", exit);
   source_file = NULL;
   ASSERT(image != NULL, "Error reading the PPM image", exit);
-  // Reads the runtime parameters
-  size_t m, raw_threshold;
-  float sharpen_factor, threshold;
-  ASSERT(sscanf(argv[3], "%lu", &m),
-         "Error reading variable radius' `m` integer", exit);
-  ASSERT(sscanf(argv[4], "%lu", &raw_threshold),
-         "Error reading sharpen's `threshold` integer", exit);
-  ASSERT(sscanf(argv[5], "%f", &sharpen_factor),
-         "Error reading sharpen's `sharpen_factor` float", exit);
   threshold = ((float)raw_threshold) / ((float)image->max_value);
   // Apply the PPM image filter
   ASSERT(filter_ppm_image(image, threshold, sharpen_factor, m),
