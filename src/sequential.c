@@ -44,7 +44,7 @@ int blur_at(PpmImage *image, size_t m, size_t x, size_t y, RgbTriplet *rgb) {
   size_t radius = r_pixel(image, m, x, y);
   if (radius == 0)
     return 0;
-  float sum_r = 0.0, sum_g = 0.0, sum_b = 0.0;
+  float sum_r = 0.0f, sum_g = 0.0f, sum_b = 0.0f;
   for (size_t i = 0; i <= 2 * radius; i++) {
     for (size_t j = 0; j <= 2 * radius; j++) {
       size_t neighbour_x = x + i;
