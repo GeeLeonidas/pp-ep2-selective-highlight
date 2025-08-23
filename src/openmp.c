@@ -6,23 +6,42 @@
 #include "ppm.h"
 #include <stddef.h>
 
+#define OMP_ASSERT(expr, msg, error_msg)                                       \
+  if (!(expr)) {                                                               \
+    error_msg = msg;                                                           \
+    continue;                                                                  \
+  }
+#define OMP_SKIP_ON_ERROR(error_msg)                                           \
+  if (error_msg != NULL) {                                                     \
+    continue;                                                                  \
+  }
+#define OMP_HANDLE_ASSERTS(error_msg)                                          \
+  if (error_msg != NULL) {                                                     \
+    puts(error_msg);                                                           \
+    return 0;                                                                  \
+  }
+
 #define THREAD_COUNT 12
 
 int grayscale(PpmImage *image) {
   if (image == NULL)
     return 0;
   size_t image_size = image->width * image->height;
+  char *error_msg = NULL;
 #pragma omp parallel for num_threads(THREAD_COUNT)
   for (size_t idx = 0; idx < image_size; idx++) {
+    OMP_SKIP_ON_ERROR(error_msg);
     RgbTriplet rgb;
-    if (!read_at_idx_ppm_image(image, idx, &rgb))
-      return 0;
+    OMP_ASSERT(read_at_idx_ppm_image(image, idx, &rgb),
+               "Error reading PPM image at index", error_msg);
     float y = 0.299f * rgb.r + 0.587f * rgb.g + 0.114f * rgb.b;
     RgbTriplet grayscale_rgb = (RgbTriplet){.r = y, .g = y, .b = y};
-    if (!write_at_idx_ppm_image(image, idx, grayscale_rgb))
-      return 0;
+    OMP_ASSERT(write_at_idx_ppm_image(image, idx, grayscale_rgb),
+               "Error writing PPM image at index", error_msg);
   }
-  flush_ppm_image(image);
+  OMP_HANDLE_ASSERTS(error_msg);
+  if (!flush_ppm_image(image))
+    return 0;
   return 1;
 }
 
@@ -85,14 +104,16 @@ float clamp_zero_one(float input) {
 int sharpen(PpmImage *image, float threshold, float sharpen_factor, size_t m) {
   if (image == NULL)
     return 0;
+  char *error_msg = NULL;
 #pragma omp parallel for num_threads(THREAD_COUNT)
   for (size_t x = 0; x < image->width; x++) {
+    OMP_SKIP_ON_ERROR(error_msg);
     for (size_t y = 0; y < image->height; y++) {
       RgbTriplet rgb, blur, new_rgb;
-      if (!read_at_xy_ppm_image(image, x, y, &rgb))
-        return 0;
-      if (!blur_at(image, m, x, y, &blur))
-        return 0;
+      OMP_ASSERT(read_at_xy_ppm_image(image, x, y, &rgb),
+                 "Error reading PPM image at (X,Y) coords", error_msg);
+      OMP_ASSERT(blur_at(image, m, x, y, &blur),
+                 "Error calculating blur at (X,Y) coords", error_msg);
       if (rgb.r <= threshold)
         new_rgb = blur;
       else
@@ -100,10 +121,11 @@ int sharpen(PpmImage *image, float threshold, float sharpen_factor, size_t m) {
             .r = clamp_zero_one(rgb.r + sharpen_factor * (rgb.r - blur.r)),
             .g = clamp_zero_one(rgb.g + sharpen_factor * (rgb.g - blur.g)),
             .b = clamp_zero_one(rgb.b + sharpen_factor * (rgb.b - blur.b))};
-      if (!write_at_xy_ppm_image(image, x, y, new_rgb))
-        return 0;
+      OMP_ASSERT(write_at_xy_ppm_image(image, x, y, new_rgb),
+                 "Error writing PPM image at (X,Y) coords", error_msg);
     }
   }
+  OMP_HANDLE_ASSERTS(error_msg);
   if (!flush_ppm_image(image))
     return 0;
   return 1;
