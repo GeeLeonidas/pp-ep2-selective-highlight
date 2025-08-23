@@ -6,10 +6,13 @@
 #include "ppm.h"
 #include <stddef.h>
 
+#define THREAD_COUNT 12
+
 int grayscale(PpmImage *image) {
   if (image == NULL)
     return 0;
   size_t image_size = image->width * image->height;
+#pragma omp parallel for num_threads(THREAD_COUNT)
   for (size_t idx = 0; idx < image_size; idx++) {
     RgbTriplet rgb;
     if (!read_at_idx_ppm_image(image, idx, &rgb))
@@ -82,6 +85,7 @@ float clamp_zero_one(float input) {
 int sharpen(PpmImage *image, float threshold, float sharpen_factor, size_t m) {
   if (image == NULL)
     return 0;
+#pragma omp parallel for num_threads(THREAD_COUNT)
   for (size_t x = 0; x < image->width; x++) {
     for (size_t y = 0; y < image->height; y++) {
       RgbTriplet rgb, blur, new_rgb;
