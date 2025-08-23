@@ -21,7 +21,7 @@
     return 0;                                                                  \
   }
 
-#define THREAD_COUNT 12
+#define THREAD_COUNT 6
 
 int grayscale(PpmImage *image) {
   if (image == NULL)
