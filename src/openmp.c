@@ -105,10 +105,10 @@ int sharpen(PpmImage *image, float threshold, float sharpen_factor, size_t m) {
   if (image == NULL)
     return 0;
   char *error_msg = NULL;
-#pragma omp parallel for num_threads(THREAD_COUNT)
+#pragma omp parallel for num_threads(THREAD_COUNT) collapse(2)
   for (size_t x = 0; x < image->width; x++) {
-    OMP_SKIP_ON_ERROR(error_msg);
     for (size_t y = 0; y < image->height; y++) {
+      OMP_SKIP_ON_ERROR(error_msg);
       RgbTriplet rgb, blur, new_rgb;
       OMP_ASSERT(read_at_xy_ppm_image(image, x, y, &rgb),
                  "Error reading PPM image at (X,Y) coords", error_msg);
