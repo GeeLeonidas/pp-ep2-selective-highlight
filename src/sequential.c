@@ -19,7 +19,8 @@ int grayscale(PpmImage *image) {
     if (!write_at_idx_ppm_image(image, idx, grayscale_rgb))
       return 0;
   }
-  flush_ppm_image(image);
+  if (!flush_ppm_image(image))
+    return 0;
   return 1;
 }
 
