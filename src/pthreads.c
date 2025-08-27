@@ -11,12 +11,12 @@
 
 #define THREAD_COUNT 6
 
-int grayscale(PpmImage *image, size_t start_idx, size_t step,
-              pthread_barrier_t *flush_barrier, int rank) {
+int grayscale(PpmImage *image, int rank, size_t step,
+              pthread_barrier_t *flush_barrier) {
   if (image == NULL)
     return 0;
   size_t image_size = image->width * image->height;
-  for (size_t idx = start_idx; idx < image_size; idx += step) {
+  for (size_t idx = (size_t)rank; idx < image_size; idx += step) {
     RgbTriplet rgb;
     if (!read_at_idx_ppm_image(image, idx, &rgb))
       return 0;
@@ -88,12 +88,11 @@ float clamp_zero_one(float input) {
 }
 
 int sharpen(PpmImage *image, float threshold, float sharpen_factor, size_t m,
-            size_t start_idx, size_t step, pthread_barrier_t *flush_barrier,
-            int rank) {
+            int rank, size_t step, pthread_barrier_t *flush_barrier) {
   if (image == NULL)
     return 0;
   size_t image_size = image->width * image->height;
-  for (size_t idx = start_idx; idx < image_size; idx += step) {
+  for (size_t idx = (size_t)rank; idx < image_size; idx += step) {
     size_t x = idx % image->width;
     size_t y = idx / image->width;
     RgbTriplet rgb, blur, new_rgb;
@@ -134,12 +133,10 @@ void *sharpen_and_grayscale_thread(void *void_ptr) {
     goto thread_error;
   *args->result_ptr = 0;
   size_t per_thread_step = THREAD_COUNT;
-  size_t start_idx = (size_t)args->rank;
   if (!sharpen(args->image, args->threshold, args->sharpen_factor, args->m,
-               start_idx, per_thread_step, args->barrier, args->rank))
+               args->rank, per_thread_step, args->barrier))
     goto thread_error;
-  if (!grayscale(args->image, start_idx, per_thread_step, args->barrier,
-                 args->rank))
+  if (!grayscale(args->image, args->rank, per_thread_step, args->barrier))
     goto thread_error;
   *args->result_ptr = 1;
 thread_error:
