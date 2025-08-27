@@ -6,16 +6,16 @@
 rm -rf target/debug/
 mkdir -p target/debug/
 
-VARIANTS="
-sequential
-"
-for VARIANT in $VARIANTS; do
-    if [[ ! -z $VARIANT ]]; then
-        echo "Compiling $VARIANT variant..."
-        $CC -xc src/main.c src/ppm.c "src/$VARIANT.c" -lm -g3 \
-            -Wall -Wextra -Wdouble-promotion -Wconversion \
-            -Wno-sign-conversion \
-            -o target/debug/$VARIANT
-    fi
-done
+SEQ_VARIANT="$CC,sequential,"
+OMP_VARIANT="$CC,openmp,-fopenmp"
+PTHREADS_VARIANT="$CC,pthreads,"
+
+LOOP_PARAMETERS="$SEQ_VARIANT;$OMP_VARIANT;$PTHREADS_VARIANT;"
+while IFS=',' read -d';' -r CC VARIANT EXTRA_ARGS; do
+    echo "Compiling $VARIANT variant with $CC..."
+    $CC -xc src/main.c "src/ppm.c" "src/$VARIANT.c" -lm -g3 \
+        -Wall -Wextra -Wdouble-promotion -Wconversion \
+        -Wno-sign-conversion $EXTRA_ARGS \
+        -o target/debug/$VARIANT
+done <<< "$LOOP_PARAMETERS"
 echo "All variants were compiled!"
