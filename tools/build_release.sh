@@ -3,6 +3,8 @@
 #
 # SPDX-License-Identifier: 0BSD OR CC0-1.0
 
+OLD_CC=$CC
+
 rm -rf target/release/
 mkdir -p target/release/
 
@@ -19,3 +21,12 @@ while IFS=',' read -d';' -r CC VARIANT EXTRA_ARGS; do
         -flto -o target/release/$VARIANT
 done <<< "$LOOP_PARAMETERS"
 echo "All variants were compiled!"
+
+CC=$OLD_CC
+
+echo "Compiling checker with $CC..."
+$CC -xc src/checker.c src/ppm.c -lm -O3 \
+    -Wall -Wextra -Wdouble-promotion -Wconversion \
+    -Wno-sign-conversion \
+    -flto -o target/debug/checker
+echo "Checker was compiled!"
