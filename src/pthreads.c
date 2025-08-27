@@ -7,12 +7,16 @@
 #include <bits/pthreadtypes.h>
 #include <pthread.h>
 #include <stddef.h>
+#include <stdlib.h>
 
-int grayscale(PpmImage *image) {
+#define THREAD_COUNT 6
+
+int grayscale(PpmImage *image, size_t start_idx, size_t step,
+              pthread_barrier_t *flush_barrier, int rank) {
   if (image == NULL)
     return 0;
   size_t image_size = image->width * image->height;
-  for (size_t idx = 0; idx < image_size; idx++) {
+  for (size_t idx = start_idx; idx < image_size; idx += step) {
     RgbTriplet rgb;
     if (!read_at_idx_ppm_image(image, idx, &rgb))
       return 0;
@@ -21,7 +25,8 @@ int grayscale(PpmImage *image) {
     if (!write_at_idx_ppm_image(image, idx, grayscale_rgb))
       return 0;
   }
-  if (!flush_ppm_image(image))
+  pthread_barrier_wait(flush_barrier);
+  if (rank == 0 && !flush_ppm_image(image))
     return 0;
   return 1;
 }
@@ -82,28 +87,32 @@ float clamp_zero_one(float input) {
   return (input >= 1.0f) ? 1.0f : ((input <= 0.0f) ? 0.0f : input);
 }
 
-int sharpen(PpmImage *image, float threshold, float sharpen_factor, size_t m) {
+int sharpen(PpmImage *image, float threshold, float sharpen_factor, size_t m,
+            size_t start_idx, size_t step, pthread_barrier_t *flush_barrier,
+            int rank) {
   if (image == NULL)
     return 0;
-  for (size_t x = 0; x < image->width; x++) {
-    for (size_t y = 0; y < image->height; y++) {
-      RgbTriplet rgb, blur, new_rgb;
-      if (!read_at_xy_ppm_image(image, x, y, &rgb))
-        return 0;
-      if (!blur_at(image, m, x, y, &blur))
-        return 0;
-      if (rgb.r <= threshold)
-        new_rgb = blur;
-      else
-        new_rgb = (RgbTriplet){
-            .r = clamp_zero_one(rgb.r + sharpen_factor * (rgb.r - blur.r)),
-            .g = clamp_zero_one(rgb.g + sharpen_factor * (rgb.g - blur.g)),
-            .b = clamp_zero_one(rgb.b + sharpen_factor * (rgb.b - blur.b))};
-      if (!write_at_xy_ppm_image(image, x, y, new_rgb))
-        return 0;
-    }
+  size_t image_size = image->width * image->height;
+  for (size_t idx = start_idx; idx < image_size; idx += step) {
+    size_t x = idx % image->width;
+    size_t y = idx / image->width;
+    RgbTriplet rgb, blur, new_rgb;
+    if (!read_at_xy_ppm_image(image, x, y, &rgb))
+      return 0;
+    if (!blur_at(image, m, x, y, &blur))
+      return 0;
+    if (rgb.r <= threshold)
+      new_rgb = blur;
+    else
+      new_rgb = (RgbTriplet){
+          .r = clamp_zero_one(rgb.r + sharpen_factor * (rgb.r - blur.r)),
+          .g = clamp_zero_one(rgb.g + sharpen_factor * (rgb.g - blur.g)),
+          .b = clamp_zero_one(rgb.b + sharpen_factor * (rgb.b - blur.b))};
+    if (!write_at_xy_ppm_image(image, x, y, new_rgb))
+      return 0;
   }
-  if (!flush_ppm_image(image))
+  pthread_barrier_wait(flush_barrier);
+  if (rank == 0 && !flush_ppm_image(image))
     return 0;
   return 1;
 }
@@ -141,9 +150,45 @@ int filter_ppm_image(PpmImage *image, float threshold, float sharpen_factor,
                      size_t m) {
   if (image == NULL)
     return 0;
-  if (!sharpen(image, threshold, sharpen_factor, m))
-    return 0;
-  if (!grayscale(image))
-    return 0;
-  return 1;
+  int result = 0;
+  pthread_t *thread_handles = malloc(THREAD_COUNT * sizeof(pthread_t));
+  int *result_array = malloc(THREAD_COUNT * sizeof(int));
+  pthread_barrier_t *barrier = malloc(sizeof(pthread_barrier_t));
+  SharpenAndGrayscaleArgs *args_array =
+      malloc(THREAD_COUNT * sizeof(SharpenAndGrayscaleArgs));
+  pthread_barrier_init(barrier, NULL, THREAD_COUNT);
+  int running_thread_count = 0;
+  for (int idx = 0; idx < THREAD_COUNT; idx++) {
+    args_array[idx] =
+        (SharpenAndGrayscaleArgs){.rank = idx,
+                                  .image = image,
+                                  .threshold = threshold,
+                                  .sharpen_factor = sharpen_factor,
+                                  .m = m,
+                                  .result_ptr = &result_array[idx],
+                                  .barrier = barrier};
+    if (pthread_create(&thread_handles[idx], NULL, sharpen_and_grayscale_thread,
+                       &args_array[idx]))
+      break;
+    running_thread_count++;
+  }
+  if (running_thread_count != THREAD_COUNT)
+    for (int idx = 0; idx < running_thread_count; idx++)
+      pthread_cancel(thread_handles[idx]);
+  for (int idx = 0; idx < running_thread_count; idx++)
+    pthread_join(thread_handles[idx], NULL);
+  if (running_thread_count == THREAD_COUNT) {
+    result = 1;
+    for (int idx = 0; idx < running_thread_count; idx++)
+      if (!result_array[idx]) {
+        result = 0;
+        break;
+      }
+  }
+  pthread_barrier_destroy(barrier);
+  free(thread_handles);
+  free(result_array);
+  free(barrier);
+  free(args_array);
+  return result;
 }
