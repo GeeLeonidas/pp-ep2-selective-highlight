@@ -4,6 +4,8 @@
 
 #include "filter.h"
 #include "ppm.h"
+#include <bits/pthreadtypes.h>
+#include <pthread.h>
 #include <stddef.h>
 
 int grayscale(PpmImage *image) {
@@ -104,6 +106,35 @@ int sharpen(PpmImage *image, float threshold, float sharpen_factor, size_t m) {
   if (!flush_ppm_image(image))
     return 0;
   return 1;
+}
+
+typedef struct sharpen_and_grayscale_args {
+  int rank;
+  PpmImage *image;
+  float threshold, sharpen_factor;
+  size_t m;
+  int *result_ptr;
+  pthread_barrier_t *barrier;
+} SharpenAndGrayscaleArgs;
+
+void *sharpen_and_grayscale_thread(void *void_ptr) {
+  SharpenAndGrayscaleArgs *args = void_ptr;
+  if (args == NULL || args->image == NULL ||
+      args->image->color_values_read == NULL ||
+      args->image->color_values_write == NULL || args->result_ptr == NULL)
+    goto thread_error;
+  *args->result_ptr = 0;
+  size_t per_thread_step = THREAD_COUNT;
+  size_t start_idx = (size_t)args->rank;
+  if (!sharpen(args->image, args->threshold, args->sharpen_factor, args->m,
+               start_idx, per_thread_step, args->barrier, args->rank))
+    goto thread_error;
+  if (!grayscale(args->image, start_idx, per_thread_step, args->barrier,
+                 args->rank))
+    goto thread_error;
+  *args->result_ptr = 1;
+thread_error:
+  return NULL;
 }
 
 int filter_ppm_image(PpmImage *image, float threshold, float sharpen_factor,
