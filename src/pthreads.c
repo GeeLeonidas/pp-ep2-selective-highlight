@@ -28,6 +28,7 @@ int grayscale(PpmImage *image, int rank, size_t step,
   pthread_barrier_wait(flush_barrier);
   if (rank == 0 && !flush_ppm_image(image))
     return 0;
+  pthread_barrier_wait(flush_barrier);
   return 1;
 }
 
@@ -113,6 +114,7 @@ int sharpen(PpmImage *image, float threshold, float sharpen_factor, size_t m,
   pthread_barrier_wait(flush_barrier);
   if (rank == 0 && !flush_ppm_image(image))
     return 0;
+  pthread_barrier_wait(flush_barrier);
   return 1;
 }
 
