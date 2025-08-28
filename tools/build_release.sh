@@ -20,7 +20,7 @@ while IFS=',' read -d';' -r CC VARIANT EXTRA_ARGS; do
         -Wno-sign-conversion $EXTRA_ARGS \
         -flto -o target/release/$VARIANT
 done <<< "$LOOP_PARAMETERS"
-echo "All variants were compiled!"
+echo "All CPU variants were compiled!"
 
 CC=$OLD_CC
 
