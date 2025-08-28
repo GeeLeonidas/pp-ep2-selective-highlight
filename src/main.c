@@ -15,6 +15,8 @@
 
 int main(int argc, char **argv) {
   int exit_code = EXIT_FAILURE;
+  PpmImage *image = NULL;
+  FILE *source_file = NULL, *output_file = NULL;
   ASSERT(argc >= 6, "Missing arguments (min.: 5)", exit);
   // Reads the runtime parameters
   size_t m, raw_threshold;
@@ -31,14 +33,14 @@ int main(int argc, char **argv) {
   ASSERT(sharpen_factor >= 0.0f && sharpen_factor <= 2.0f,
          "Sharpen's `sharpen_factor` float isn't inside 0..2 interval", exit);
   // Tries to open/close the output file in append-mode just to test if it's possible
-  FILE *output_file = fopen(argv[2], "a");
+  output_file = fopen(argv[2], "a");
   ASSERT(output_file != NULL, "Error opening the output file", exit);
   ASSERT(fclose(output_file) == 0, "Error closing the output file", exit);
   output_file = NULL;
   // Opens the source file and reads the PPM image
-  FILE *source_file = fopen(argv[1], "r");
+  source_file = fopen(argv[1], "r");
   ASSERT(source_file != NULL, "Error opening the source file", exit);
-  PpmImage *image = read_ppm_image(source_file);
+  image = read_ppm_image(source_file);
   ASSERT(fclose(source_file) == 0, "Error closing the source file", exit);
   source_file = NULL;
   ASSERT(image != NULL, "Error reading the PPM image", exit);
