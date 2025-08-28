@@ -1,3 +1,4 @@
+  --cuda-path=./cuda
   -U_FORTIFY_SOURCE
   -D_FORTIFY_SOURCE=2
   -B/nix/store/lmn7lwydprqibdkghw7wgcn21yhllz13-glibc-2.40-66/lib/
