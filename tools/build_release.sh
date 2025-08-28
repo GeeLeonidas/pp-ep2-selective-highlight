@@ -28,5 +28,5 @@ echo "Compiling checker with $CC..."
 $CC -xc src/checker.c src/ppm.c -lm -O3 \
     -Wall -Wextra -Wdouble-promotion -Wconversion \
     -Wno-sign-conversion \
-    -flto -o target/debug/checker
+    -flto -o target/release/checker
 echo "Checker was compiled!"
