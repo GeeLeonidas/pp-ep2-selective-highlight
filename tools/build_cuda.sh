@@ -6,7 +6,10 @@
 rm -f target/debug/cuda
 mkdir -p target/debug/
 
+CUDA_PATH="$(find /usr/local -regex '.+/cuda-[0-9]+\.[0-9]+$')"
+PATH="$CUDA_PATH/bin:$PATH"
+LD_LIBRARY_PATH="$CUDA_PATH/lib64:$LD_LIBRARY_PATH"
+
 echo "Compiling cuda variant with nvcc..."
-nvcc src/main.c src/ppm.c src/cuda.cu -lm -g \
-    -o target/debug/cuda
+nvcc src/cuda.cu -O3 -o target/build/cuda
 echo "Variant was compiled!"
