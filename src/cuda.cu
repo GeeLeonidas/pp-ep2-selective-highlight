@@ -296,9 +296,14 @@ int main(int argc, char **argv) {
          "Error reading sharpen's `sharpen_factor` float", exit);
   ASSERT(sharpen_factor >= 0.0f && sharpen_factor <= 2.0f,
          "Sharpen's `sharpen_factor` float isn't inside 0..2 interval", exit);
-  if (argc >= 7)
+  if (argc >= 7) {
       ASSERT(sscanf(argv[6], "%d", &threads_per_block),
-             "Error reading `threads_per_block` integer", exit);
+             "Error reading `threads_per_block` integer multiplier", exit);
+      threads_per_block *= 256;
+      ASSERT(threads_per_block >= 1 && threads_per_block <= 1024, "Filter's "
+          "`threads_per_block` is multiplied by 256, it should be inside 1..4",
+          exit);
+  }
   // Tries to open/close the output file in append-mode just to test if it's possible
   output_file = fopen(argv[2], "a");
   ASSERT(output_file != NULL, "Error opening the output file", exit);
