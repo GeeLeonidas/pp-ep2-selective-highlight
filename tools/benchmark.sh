@@ -3,8 +3,8 @@
 #
 # SPDX-License-Identifier: 0BSD OR CC0-1.0
 
-#sh ./tools/build_release.sh
-#sh ./tools/build_cuda.sh
+sh ./tools/build_release.sh
+sh ./tools/build_cuda.sh
 
 COT_BASENAME="Low Angle View of Cat on Tree"
 SEQUENTIAL_CAT_ON_TREE="sequential,$COT_BASENAME,7,180,1.25"
@@ -34,10 +34,21 @@ PTHREADS_CAT_ON_TREE_LARGE="pthreads,$COTL_BASENAME,7,180,1.25"
 CUDA_CAT_ON_TREE_LARGE="cuda,$COTL_BASENAME,7,180,1.25"
 COTL="$SEQUENTIAL_CAT_ON_TREE_LARGE;$OPENMP_CAT_ON_TREE_LARGE;$PTHREADS_CAT_ON_TREE_LARGE;$CUDA_CAT_ON_TREE_LARGE;"
 
+P_COUNTS="
+1
+2
+3
+4
+"
 ALL="$COTS$COTM$COTL$COT"
 while IFS=',' read -d';' -r VARIANT SOURCE M_PARAM THRESHOLD SHARPEN_FACTOR; do
     echo "$VARIANT on file \"$SOURCE\": m=$M_PARAM T=$THRESHOLD α=$SHARPEN_FACTOR"
-    time -f "%e" ./tools/run.sh $VARIANT "./inputs/$SOURCE.ppm" $M_PARAM $THRESHOLD $SHARPEN_FACTOR
-    time -f "%e" ./tools/run.sh $VARIANT "./inputs/$SOURCE.ppm" $M_PARAM $THRESHOLD $SHARPEN_FACTOR
-    time -f "%e" ./tools/run.sh $VARIANT "./inputs/$SOURCE.ppm" $M_PARAM $THRESHOLD $SHARPEN_FACTOR
+    for P in $P_COUNTS; do
+        if [ ! -z $P ]; then
+            echo "P=$P"
+            time -f "%e" ./tools/run.sh $VARIANT "./inputs/$SOURCE.ppm" $M_PARAM $THRESHOLD $SHARPEN_FACTOR $P
+            time -f "%e" ./tools/run.sh $VARIANT "./inputs/$SOURCE.ppm" $M_PARAM $THRESHOLD $SHARPEN_FACTOR $P
+            time -f "%e" ./tools/run.sh $VARIANT "./inputs/$SOURCE.ppm" $M_PARAM $THRESHOLD $SHARPEN_FACTOR $P
+        fi
+    done
 done <<< "$ALL"
