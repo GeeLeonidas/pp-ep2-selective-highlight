@@ -21,14 +21,12 @@
     return 0;                                                                  \
   }
 
-#define THREAD_COUNT 6
-
-int grayscale(PpmImage *image) {
+int grayscale(PpmImage *image, int thread_count) {
   if (image == NULL)
     return 0;
   size_t image_size = image->width * image->height;
   char *error_msg = NULL;
-#pragma omp parallel for num_threads(THREAD_COUNT)
+#pragma omp parallel for num_threads(thread_count)
   for (size_t idx = 0; idx < image_size; idx++) {
     OMP_SKIP_ON_ERROR(error_msg);
     RgbTriplet rgb;
@@ -101,11 +99,12 @@ float clamp_zero_one(float input) {
   return (input >= 1.0f) ? 1.0f : ((input <= 0.0f) ? 0.0f : input);
 }
 
-int sharpen(PpmImage *image, float threshold, float sharpen_factor, size_t m) {
+int sharpen(PpmImage *image, float threshold, float sharpen_factor, size_t m,
+            int thread_count) {
   if (image == NULL)
     return 0;
   char *error_msg = NULL;
-#pragma omp parallel for num_threads(THREAD_COUNT) collapse(2)
+#pragma omp parallel for num_threads(thread_count) collapse(2)
   for (size_t x = 0; x < image->width; x++) {
     for (size_t y = 0; y < image->height; y++) {
       OMP_SKIP_ON_ERROR(error_msg);
@@ -132,12 +131,12 @@ int sharpen(PpmImage *image, float threshold, float sharpen_factor, size_t m) {
 }
 
 int filter_ppm_image(PpmImage *image, float threshold, float sharpen_factor,
-                     size_t m) {
+                     size_t m, int thread_count) {
   if (image == NULL)
     return 0;
-  if (!sharpen(image, threshold, sharpen_factor, m))
+  if (!sharpen(image, threshold, sharpen_factor, m, thread_count))
     return 0;
-  if (!grayscale(image))
+  if (!grayscale(image, thread_count))
     return 0;
   return 1;
 }

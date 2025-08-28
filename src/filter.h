@@ -8,6 +8,6 @@
 #include "ppm.h"
 
 int filter_ppm_image(PpmImage *image, float threshold, float sharpen_factor,
-                     size_t m);
+                     size_t m, int thread_count);
 
 #endif // FILTER_HEADER

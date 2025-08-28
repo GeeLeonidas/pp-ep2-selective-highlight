@@ -6,6 +6,8 @@
 #include "ppm.h"
 #include <stddef.h>
 
+#define UNUSED(x) (void)(x)
+
 int grayscale(PpmImage *image) {
   if (image == NULL)
     return 0;
@@ -107,7 +109,8 @@ int sharpen(PpmImage *image, float threshold, float sharpen_factor, size_t m) {
 }
 
 int filter_ppm_image(PpmImage *image, float threshold, float sharpen_factor,
-                     size_t m) {
+                     size_t m, int thread_count) {
+  UNUSED(thread_count);
   if (image == NULL)
     return 0;
   if (!sharpen(image, threshold, sharpen_factor, m))

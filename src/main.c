@@ -32,6 +32,10 @@ int main(int argc, char **argv) {
          "Error reading sharpen's `sharpen_factor` float", exit);
   ASSERT(sharpen_factor >= 0.0f && sharpen_factor <= 2.0f,
          "Sharpen's `sharpen_factor` float isn't inside 0..2 interval", exit);
+  int thread_count = 6;
+  if (argc >= 7)
+    ASSERT(sscanf(argv[6], "%d", &thread_count),
+           "Error reading `thread_count` integer", exit);
   // Tries to open/close the output file in append-mode just to test if it's possible
   output_file = fopen(argv[2], "a");
   ASSERT(output_file != NULL, "Error opening the output file", exit);
@@ -45,7 +49,7 @@ int main(int argc, char **argv) {
   source_file = NULL;
   ASSERT(image != NULL, "Error reading the PPM image", exit);
   // Apply the PPM image filter
-  ASSERT(filter_ppm_image(image, threshold, sharpen_factor, m),
+  ASSERT(filter_ppm_image(image, threshold, sharpen_factor, m, thread_count),
          "Error applying the filter to the PPM image", exit);
   // Saves the PPM image to the output file
   output_file = fopen(argv[2], "w");

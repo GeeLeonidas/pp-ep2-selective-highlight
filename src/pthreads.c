@@ -9,8 +9,6 @@
 #include <stddef.h>
 #include <stdlib.h>
 
-#define THREAD_COUNT 6
-
 int grayscale(PpmImage *image, int rank, size_t step,
               pthread_barrier_t *flush_barrier) {
   if (image == NULL)
@@ -119,7 +117,7 @@ int sharpen(PpmImage *image, float threshold, float sharpen_factor, size_t m,
 }
 
 typedef struct sharpen_and_grayscale_args {
-  int rank;
+  int rank, thread_count;
   PpmImage *image;
   float threshold, sharpen_factor;
   size_t m;
@@ -134,7 +132,7 @@ void *sharpen_and_grayscale_thread(void *void_ptr) {
       args->image->color_values_write == NULL || args->result_ptr == NULL)
     goto thread_error;
   *args->result_ptr = 0;
-  size_t per_thread_step = THREAD_COUNT;
+  size_t per_thread_step = args->thread_count;
   if (!sharpen(args->image, args->threshold, args->sharpen_factor, args->m,
                args->rank, per_thread_step, args->barrier))
     goto thread_error;
@@ -146,18 +144,18 @@ thread_error:
 }
 
 int filter_ppm_image(PpmImage *image, float threshold, float sharpen_factor,
-                     size_t m) {
+                     size_t m, int thread_count) {
   if (image == NULL)
     return 0;
   int result = 0;
-  pthread_t *thread_handles = malloc(THREAD_COUNT * sizeof(pthread_t));
-  int *result_array = malloc(THREAD_COUNT * sizeof(int));
+  pthread_t *thread_handles = malloc(thread_count * sizeof(pthread_t));
+  int *result_array = malloc(thread_count * sizeof(int));
   pthread_barrier_t *barrier = malloc(sizeof(pthread_barrier_t));
   SharpenAndGrayscaleArgs *args_array =
-      malloc(THREAD_COUNT * sizeof(SharpenAndGrayscaleArgs));
-  pthread_barrier_init(barrier, NULL, THREAD_COUNT);
+      malloc(thread_count * sizeof(SharpenAndGrayscaleArgs));
+  pthread_barrier_init(barrier, NULL, thread_count);
   int running_thread_count = 0;
-  for (int idx = 0; idx < THREAD_COUNT; idx++) {
+  for (int idx = 0; idx < thread_count; idx++) {
     args_array[idx] =
         (SharpenAndGrayscaleArgs){.rank = idx,
                                   .image = image,
@@ -165,18 +163,19 @@ int filter_ppm_image(PpmImage *image, float threshold, float sharpen_factor,
                                   .sharpen_factor = sharpen_factor,
                                   .m = m,
                                   .result_ptr = &result_array[idx],
-                                  .barrier = barrier};
+                                  .barrier = barrier,
+                                  .thread_count = thread_count};
     if (pthread_create(&thread_handles[idx], NULL, sharpen_and_grayscale_thread,
                        &args_array[idx]))
       break;
     running_thread_count++;
   }
-  if (running_thread_count != THREAD_COUNT)
+  if (running_thread_count != thread_count)
     for (int idx = 0; idx < running_thread_count; idx++)
       pthread_cancel(thread_handles[idx]);
   for (int idx = 0; idx < running_thread_count; idx++)
     pthread_join(thread_handles[idx], NULL);
-  if (running_thread_count == THREAD_COUNT) {
+  if (running_thread_count == thread_count) {
     result = 1;
     for (int idx = 0; idx < running_thread_count; idx++)
       if (!result_array[idx]) {
