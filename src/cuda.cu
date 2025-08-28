@@ -165,45 +165,19 @@ void free_ppm_image(PpmImage **image) {
 
 // FILTER SECTION
 
-int grayscale(PpmImage *image) {
-  if (image == NULL)
-    return 0;
-  size_t image_size = image->width * image->height;
-  for (size_t idx = 0; idx < image_size; idx++) {
-    RgbTriplet rgb;
-    if (!read_at_idx_ppm_image(image, idx, &rgb))
-      return 0;
-    float y = 0.299f * rgb.r + 0.587f * rgb.g + 0.114f * rgb.b;
-    RgbTriplet grayscale_rgb = (RgbTriplet){.r = y, .g = y, .b = y};
-    if (!write_at_idx_ppm_image(image, idx, grayscale_rgb))
-      return 0;
-  }
-  if (!flush_ppm_image(image))
-    return 0;
-  return 1;
-}
+#define THREADS_PER_BLOCK 1024
 
-size_t r_pixel(PpmImage *image, size_t m, size_t x, size_t y) {
-  if (image == NULL)
-    return 0;
-  if (x > image->width || y > image->height)
-    return 0;
+__device__ void r_pixel(PpmImage *image, size_t m, size_t x, size_t y, size_t *radius) {
   RgbTriplet rgb;
   size_t idx = x + y * image->width;
-  if (!read_at_idx_ppm_image(image, idx, &rgb))
-    return 0;
+  rgb = image->color_values_read[idx];
   float sum = rgb.r + rgb.g + rgb.b;
-  return (((size_t)(sum * 255)) % m) + 1;
+  *radius = (((size_t)(sum * 255)) % m) + 1;
 }
 
-int blur_at(PpmImage *image, size_t m, size_t x, size_t y, RgbTriplet *rgb) {
-  if (image == NULL)
-    return 0;
-  if (x > image->width || y > image->height)
-    return 0;
-  size_t radius = r_pixel(image, m, x, y);
-  if (radius == 0)
-    return 0;
+__device__ void blur_at(PpmImage *image, size_t m, size_t x, size_t y, RgbTriplet *rgb) {
+  size_t radius;
+  r_pixel(image, m, x, y, &radius);
   float sum_r = 0.0f, sum_g = 0.0f, sum_b = 0.0f;
   for (size_t i = 0; i <= 2 * radius; i++) {
     for (size_t j = 0; j <= 2 * radius; j++) {
@@ -223,8 +197,7 @@ int blur_at(PpmImage *image, size_t m, size_t x, size_t y, RgbTriplet *rgb) {
         neighbour_y = image->height - 1;
       size_t neighbour_idx = neighbour_x + neighbour_y * image->width;
       RgbTriplet neighbour_rgb;
-      if (!read_at_idx_ppm_image(image, neighbour_idx, &neighbour_rgb))
-        return 0;
+      neighbour_rgb = image->color_values_read[neighbour_idx];
       sum_r += neighbour_rgb.r;
       sum_g += neighbour_rgb.g;
       sum_b += neighbour_rgb.b;
@@ -232,48 +205,75 @@ int blur_at(PpmImage *image, size_t m, size_t x, size_t y, RgbTriplet *rgb) {
   }
   float n = (float)((1 + radius * 2) * (1 + radius * 2));
   *rgb = (RgbTriplet){.r = sum_r / n, .g = sum_g / n, .b = sum_b / n};
-  return 1;
 }
 
-float clamp_zero_one(float input) {
-  return (input >= 1.0f) ? 1.0f : ((input <= 0.0f) ? 0.0f : input);
+__global__ void sharpen_kernel(PpmImage image, size_t image_size, float threshold, float sharpen_factor, size_t m) {
+    size_t global_idx = blockDim.x * blockIdx.x + threadIdx.x;
+    if (global_idx >= image_size)
+        return;
+    size_t x = global_idx % image.width;
+    size_t y = global_idx / image.width;
+    RgbTriplet rgb, blur, new_rgb;
+    rgb = image.color_values_read[global_idx];
+    blur_at(&image, m, x, y, &blur);
+    if (rgb.r <= threshold)
+      new_rgb = blur;
+    else
+      new_rgb = (RgbTriplet){
+          .r = rgb.r + sharpen_factor * (rgb.r - blur.r),
+          .g = rgb.g + sharpen_factor * (rgb.g - blur.g),
+          .b = rgb.b + sharpen_factor * (rgb.b - blur.b)};
+    new_rgb.r = (new_rgb.r >= 1.0f) ? 1.0f : ((new_rgb.r <= 0.0f) ? 0.0f : new_rgb.r);
+    new_rgb.g = (new_rgb.g >= 1.0f) ? 1.0f : ((new_rgb.g <= 0.0f) ? 0.0f : new_rgb.g);
+    new_rgb.b = (new_rgb.b >= 1.0f) ? 1.0f : ((new_rgb.b <= 0.0f) ? 0.0f : new_rgb.b);
+    image.color_values_write[global_idx] = new_rgb;
 }
 
-int sharpen(PpmImage *image, float threshold, float sharpen_factor, size_t m) {
-  if (image == NULL)
-    return 0;
-  for (size_t x = 0; x < image->width; x++) {
-    for (size_t y = 0; y < image->height; y++) {
-      RgbTriplet rgb, blur, new_rgb;
-      if (!read_at_xy_ppm_image(image, x, y, &rgb))
-        return 0;
-      if (!blur_at(image, m, x, y, &blur))
-        return 0;
-      if (rgb.r <= threshold)
-        new_rgb = blur;
-      else
-        new_rgb = (RgbTriplet){
-            .r = clamp_zero_one(rgb.r + sharpen_factor * (rgb.r - blur.r)),
-            .g = clamp_zero_one(rgb.g + sharpen_factor * (rgb.g - blur.g)),
-            .b = clamp_zero_one(rgb.b + sharpen_factor * (rgb.b - blur.b))};
-      if (!write_at_xy_ppm_image(image, x, y, new_rgb))
-        return 0;
-    }
-  }
-  if (!flush_ppm_image(image))
-    return 0;
-  return 1;
+__global__ void grayscale_kernel(PpmImage image, size_t image_size) {
+    size_t global_idx = blockDim.x * blockIdx.x + threadIdx.x;
+    if (global_idx >= image_size)
+        return;
+    RgbTriplet rgb;
+    rgb = image.color_values_read[global_idx];
+    float y = 0.299f * rgb.r + 0.587f * rgb.g + 0.114f * rgb.b;
+    RgbTriplet grayscale_rgb = (RgbTriplet){.r = y, .g = y, .b = y};
+    image.color_values_write[global_idx] = grayscale_rgb;
 }
 
 int filter_ppm_image(PpmImage *image, float threshold, float sharpen_factor,
                      size_t m) {
-  if (image == NULL)
-    return 0;
-  if (!sharpen(image, threshold, sharpen_factor, m))
-    return 0;
-  if (!grayscale(image))
-    return 0;
-  return 1;
+  int exit_code = 0;
+  size_t image_size = image->width * image->height;
+  PpmImage device_image = (PpmImage){
+      .width = image->width,
+      .height = image->height,
+      .max_value = image->max_value,
+      .color_values_write = NULL,
+      .color_values_read = NULL,
+      .needs_flushing = image->needs_flushing,
+  };
+  size_t blocks = image_size / THREADS_PER_BLOCK;
+  if (image_size % THREADS_PER_BLOCK > 0)
+    blocks++;
+  ASSERT(image != NULL, "PPM image is null", filter_error);
+  cudaMalloc(&device_image.color_values_read, image_size * sizeof(RgbTriplet));
+  cudaMalloc(&device_image.color_values_write, image_size * sizeof(RgbTriplet));
+  cudaMemcpy(device_image.color_values_read, image->color_values_read, image_size * sizeof(RgbTriplet), cudaMemcpyHostToDevice);
+  sharpen_kernel<<<blocks, THREADS_PER_BLOCK>>>(device_image, image_size, threshold, sharpen_factor, m);
+  ASSERT(cudaGetLastError() == cudaSuccess, "Error while invoking CUDA kernel on the device", filter_error);
+  cudaDeviceSynchronize();
+  cudaMemcpy(device_image.color_values_read, device_image.color_values_write, image_size * sizeof(RgbTriplet), cudaMemcpyDeviceToDevice);
+  grayscale_kernel<<<blocks, THREADS_PER_BLOCK>>>(device_image, image_size);
+  ASSERT(cudaGetLastError() == cudaSuccess, "Error while invoking CUDA kernel on the device", filter_error);
+  cudaDeviceSynchronize();
+  cudaMemcpy(image->color_values_read, device_image.color_values_write, image_size * sizeof(RgbTriplet), cudaMemcpyDeviceToHost);
+  exit_code = 1;
+filter_error:
+  if (device_image.color_values_read != NULL)
+    cudaFree(device_image.color_values_read);
+  if (device_image.color_values_write != NULL)
+    cudaFree(device_image.color_values_write);
+  return exit_code;
 }
 
 // MAIN SECTION
