@@ -11,5 +11,8 @@ PATH="$CUDA_PATH/bin:$PATH"
 LD_LIBRARY_PATH="$CUDA_PATH/lib64:$LD_LIBRARY_PATH"
 
 echo "Compiling cuda variant with nvcc..."
-nvcc src/cuda.cu -O3 -o target/release/cuda
+nvcc src/cuda.cu -O3 \
+    -arch=compute_61 -code=sm_61 \
+    -Wno-deprecated-gpu-targets \
+    -o target/release/cuda
 echo "Variant was compiled!"
