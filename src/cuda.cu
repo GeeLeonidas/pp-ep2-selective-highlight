@@ -20,8 +20,10 @@
 #define MAX_LINE 4096
 
 PpmImage *read_ppm_image(FILE *source_file) {
+  PpmImage *image = NULL;
+  size_t image_size = 0;
   ASSERT(source_file != NULL, "Source file is NULL", read_ppm_image_error);
-  PpmImage *image = malloc(sizeof(PpmImage));
+  image = (PpmImage*)malloc(sizeof(PpmImage));
   char header[2];
   ASSERT(fscanf(source_file, "%c%c", &header[0], &header[1]),
          "Error reading the file header", read_ppm_image_error);
@@ -36,9 +38,9 @@ PpmImage *read_ppm_image(FILE *source_file) {
          "Error reading `width` and `height` integers", read_ppm_image_error);
   ASSERT(fscanf(source_file, "%hu", &image->max_value),
          "Error reading `max_value` integer", read_ppm_image_error);
-  size_t image_size = image->width * image->height;
-  image->color_values_write = malloc(image_size * sizeof(RgbTriplet));
-  image->color_values_read = malloc(image_size * sizeof(RgbTriplet));
+  image_size = image->width * image->height;
+  image->color_values_write = (RgbTriplet*)malloc(image_size * sizeof(RgbTriplet));
+  image->color_values_read = (RgbTriplet*)malloc(image_size * sizeof(RgbTriplet));
   image->needs_flushing = 0;
   for (size_t idx = 0; idx < image_size; idx++) {
     uint16_t red, green, blue;
@@ -119,6 +121,7 @@ read_at_xy_ppm_image_error:
 }
 
 int save_ppm_image(PpmImage *image, FILE *output_file) {
+  size_t image_size = 0;
   ASSERT(image != NULL, "PPM image is NULL", save_ppm_image_error);
   ASSERT(output_file != NULL, "Output file is NULL", save_ppm_image_error);
   ASSERT(fprintf(output_file, "P3\n"), "Error writing PPM image header",
@@ -127,7 +130,7 @@ int save_ppm_image(PpmImage *image, FILE *output_file) {
          "Error writing `width` and `height` integers", save_ppm_image_error);
   ASSERT(fprintf(output_file, "%hu\n", image->max_value),
          "Error writing `max_value` integer", save_ppm_image_error);
-  size_t image_size = image->width * image->height;
+  image_size = image->width * image->height;
   for (size_t idx = 0; idx < image_size; idx++) {
     RgbTriplet rgb;
     ASSERT(read_at_idx_ppm_image(image, idx, &rgb),
@@ -277,6 +280,8 @@ int filter_ppm_image(PpmImage *image, float threshold, float sharpen_factor,
 
 int main(int argc, char **argv) {
   int exit_code = EXIT_FAILURE;
+  PpmImage *image = NULL;
+  FILE *output_file = NULL, *source_file = NULL;
   ASSERT(argc >= 6, "Missing arguments (min.: 5)", exit);
   // Reads the runtime parameters
   size_t m, raw_threshold;
@@ -293,14 +298,14 @@ int main(int argc, char **argv) {
   ASSERT(sharpen_factor >= 0.0f && sharpen_factor <= 2.0f,
          "Sharpen's `sharpen_factor` float isn't inside 0..2 interval", exit);
   // Tries to open/close the output file in append-mode just to test if it's possible
-  FILE *output_file = fopen(argv[2], "a");
+  output_file = fopen(argv[2], "a");
   ASSERT(output_file != NULL, "Error opening the output file", exit);
   ASSERT(fclose(output_file) == 0, "Error closing the output file", exit);
   output_file = NULL;
   // Opens the source file and reads the PPM image
-  FILE *source_file = fopen(argv[1], "r");
+  source_file = fopen(argv[1], "r");
   ASSERT(source_file != NULL, "Error opening the source file", exit);
-  PpmImage *image = read_ppm_image(source_file);
+  image = read_ppm_image(source_file);
   ASSERT(fclose(source_file) == 0, "Error closing the source file", exit);
   source_file = NULL;
   ASSERT(image != NULL, "Error reading the PPM image", exit);
