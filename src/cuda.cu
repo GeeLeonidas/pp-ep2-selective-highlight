@@ -238,8 +238,10 @@ __global__ void grayscale_kernel(PpmImage image, size_t image_size) {
     image.color_values_write[global_idx] = grayscale_rgb;
 }
 
+#define THREADS_PER_BLOCK 256
+
 int filter_ppm_image(PpmImage *image, float threshold, float sharpen_factor,
-                     size_t m, int threads_per_block) {
+                     size_t m, int thread_count) {
   int exit_code = 0;
   size_t image_size = image->width * image->height;
   PpmImage device_image = (PpmImage){
@@ -250,18 +252,18 @@ int filter_ppm_image(PpmImage *image, float threshold, float sharpen_factor,
       .color_values_read = NULL,
       .needs_flushing = image->needs_flushing,
   };
-  size_t blocks = image_size / threads_per_block;
-  if (image_size % threads_per_block > 0)
+  size_t blocks = image_size / THREADS_PER_BLOCK;
+  if (image_size % THREADS_PER_BLOCK > 0)
     blocks++;
   ASSERT(image != NULL, "PPM image is null", filter_error);
   cudaMalloc(&device_image.color_values_read, image_size * sizeof(RgbTriplet));
   cudaMalloc(&device_image.color_values_write, image_size * sizeof(RgbTriplet));
   cudaMemcpy(device_image.color_values_read, image->color_values_read, image_size * sizeof(RgbTriplet), cudaMemcpyHostToDevice);
-  sharpen_kernel<<<blocks, threads_per_block>>>(device_image, image_size, threshold, sharpen_factor, m);
+  sharpen_kernel<<<blocks, THREADS_PER_BLOCK>>>(device_image, image_size, threshold, sharpen_factor, m);
   ASSERT(cudaGetLastError() == cudaSuccess, "Error while invoking CUDA kernel on the device", filter_error);
   cudaDeviceSynchronize();
   cudaMemcpy(device_image.color_values_read, device_image.color_values_write, image_size * sizeof(RgbTriplet), cudaMemcpyDeviceToDevice);
-  grayscale_kernel<<<blocks, threads_per_block>>>(device_image, image_size);
+  grayscale_kernel<<<blocks, THREADS_PER_BLOCK>>>(device_image, image_size);
   ASSERT(cudaGetLastError() == cudaSuccess, "Error while invoking CUDA kernel on the device", filter_error);
   cudaDeviceSynchronize();
   cudaMemcpy(image->color_values_read, device_image.color_values_write, image_size * sizeof(RgbTriplet), cudaMemcpyDeviceToHost);
@@ -280,7 +282,6 @@ int main(int argc, char **argv) {
   int exit_code = EXIT_FAILURE;
   PpmImage *image = NULL;
   FILE *output_file = NULL, *source_file = NULL;
-  int threads_per_block = 1024;
   ASSERT(argc >= 6, "Missing arguments (min.: 5)", exit);
   // Reads the runtime parameters
   size_t m, raw_threshold;
@@ -296,14 +297,6 @@ int main(int argc, char **argv) {
          "Error reading sharpen's `sharpen_factor` float", exit);
   ASSERT(sharpen_factor >= 0.0f && sharpen_factor <= 2.0f,
          "Sharpen's `sharpen_factor` float isn't inside 0..2 interval", exit);
-  if (argc >= 7) {
-      ASSERT(sscanf(argv[6], "%d", &threads_per_block),
-             "Error reading `threads_per_block` integer multiplier", exit);
-      threads_per_block *= 256;
-      ASSERT(threads_per_block >= 1 && threads_per_block <= 1024, "Filter's "
-          "`threads_per_block` is multiplied by 256, it should be inside 1..4",
-          exit);
-  }
   // Tries to open/close the output file in append-mode just to test if it's possible
   output_file = fopen(argv[2], "a");
   ASSERT(output_file != NULL, "Error opening the output file", exit);
@@ -317,7 +310,7 @@ int main(int argc, char **argv) {
   source_file = NULL;
   ASSERT(image != NULL, "Error reading the PPM image", exit);
   // Apply the PPM image filter
-  ASSERT(filter_ppm_image(image, threshold, sharpen_factor, m, threads_per_block),
+  ASSERT(filter_ppm_image(image, threshold, sharpen_factor, m, 0),
          "Error applying the filter to the PPM image", exit);
   // Saves the PPM image to the output file
   output_file = fopen(argv[2], "w");
