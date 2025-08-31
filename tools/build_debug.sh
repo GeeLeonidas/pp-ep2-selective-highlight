@@ -3,6 +3,10 @@
 #
 # SPDX-License-Identifier: 0BSD OR CC0-1.0
 
+if [ ! -z CC ]; then
+    CC=gcc-14
+fi
+
 OLD_CC=$CC
 
 rm -rf target/debug/
